@@ -1,6 +1,8 @@
 <?php
 
-namespace Aipo\DemoMvc;
+namespace app\core;
+
+use JetBrains\PhpStorm\NoReturn;
 
 class Router
 {
@@ -9,8 +11,8 @@ class Router
     public Response $response;
 
     /**
-     * @param \Aipo\DemoMvc\Request $request
-     * @param \Aipo\DemoMvc\Response $response
+     * @param \app\core\Request $request
+     * @param \app\core\Response $response
      */
     public function __construct(Request $request, Response $response)
     {
@@ -18,12 +20,12 @@ class Router
         $this->response = $response;
     }
 
-    public function get($path, $callback)
+    public function get($path, $callback): void
     {
         $this->routes['get'][$path] = $callback;
     }
 
-    public function post($path, $callback)
+    public function post($path, $callback): void
     {
         $this->routes['post'][$path] = $callback;
     }
@@ -32,7 +34,7 @@ class Router
     public function resolve()
     {
         $path = $this->request->getPath();
-        $method = $this->request->getMethod();
+        $method = $this->request->method();
         $callback = $this->routes[$method][$path] ?? false;
 
         if ($callback === false) {
@@ -42,17 +44,22 @@ class Router
         if (is_string($callback)) {
             return $this->renderView($callback);
         }
-        echo call_user_func($callback);
+        if (is_array($callback)) {
+            Application::$app->controller = new $callback[0]();
+            $callback[0] = Application::$app->controller;
+        }
+
+        return call_user_func($callback, $this->request);
     }
 
-    private function renderView(string $view): array|bool|string
+    public function renderView(string $view, $params = []): array|bool|string
     {
         $layoutContent = $this->layoutContent();
-        $viewContent = $this->renderOnlyView($view);
+        $viewContent = $this->renderOnlyView($view, $params);
         return str_replace('{{content}}', $viewContent, $layoutContent);
     }
 
-    private function renderContent(string $viewContent): array|bool|string
+    public function renderContent(string $viewContent): array|bool|string
     {
         $layoutContent = $this->layoutContent();
         return str_replace('{{content}}', $viewContent, $layoutContent);
@@ -60,13 +67,17 @@ class Router
 
     private function layoutContent(): bool|string
     {
+        $layout = Application::$app->controller->layout;
         ob_start();
-        include_once Application::$ROOT_DIR . "/views/layouts/main.php";
+        include_once Application::$ROOT_DIR . "/views/layouts/$layout.php";
         return ob_get_clean();
     }
 
-    protected function renderOnlyView($view)
+    #[NoReturn] protected function renderOnlyView($view, $params = []): bool|string
     {
+        foreach ($params as $key => $value) {
+            $$key = $value;
+        }
         ob_start();
         include_once Application::$ROOT_DIR . "/views/$view.php";
         return ob_get_clean();

@@ -3,7 +3,7 @@
     "description": "Demo MVC framework",
     "autoload": {
         "psr-4": {
-            "Aipo\\DemoMvc\\": "./core/"
+            "app": "."
         }
     },
     "authors": [

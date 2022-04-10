@@ -1,6 +1,6 @@
 <?php
 
-namespace Aipo\DemoMvc;
+namespace app\core;
 
 class Response
 {
